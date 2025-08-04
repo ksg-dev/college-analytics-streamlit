@@ -265,9 +265,9 @@ def main():
     personality_majors = personality_types[selected_personality]['recommended_majors']
     personality_bonus = 0.3  # Increased to 30% bonus for personality match
     
-    # Debug: Show personality matching
-    st.write(f"**🧠 Personality Type: {selected_personality}**")
-    st.write(f"**Recommended Major Types:** {', '.join(personality_majors)}")
+    # # Debug: Show personality matching
+    # st.write(f"**🧠 Personality Type: {selected_personality}**")
+    # st.write(f"**Recommended Major Types:** {', '.join(personality_majors)}")
     
     personality_matches = []
     for idx, row in df.iterrows():
@@ -302,7 +302,7 @@ def main():
     top_recommendations = df.nlargest(10, 'Personalized_Score')
     
     # Debug information to show what's affecting rankings
-    with st.expander("🔍 Debug: See How Rankings Are Calculated"):
+    with st.expander("🔍 See How Rankings Are Calculated"):
         st.write("**Priority Weights:**")
         st.write(f"- Salary: {priorities['salary']:.1f}%")
         st.write(f"- Growth: {priorities['growth']:.1f}%") 

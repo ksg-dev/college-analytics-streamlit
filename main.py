@@ -158,7 +158,7 @@ def main():
         st.metric(
             label="💰 Avg Starting Salary",
             value=f"${avg_start:,.0f}",
-            delta=f"${avg_start - stats['avg_starting_salary']:,.0f}",
+            delta=f"{avg_start - stats['avg_starting_salary']:,.0f}",
             help="Average starting salary for filtered majors"
         )
     
@@ -167,7 +167,7 @@ def main():
         st.metric(
             label="📈 Avg Mid-Career Salary",
             value=f"${avg_mid:,.0f}",
-            delta=f"${avg_mid - stats['avg_midcareer_salary']:,.0f}",
+            delta=f"{avg_mid - stats['avg_midcareer_salary']:,.0f}",
             help="Average mid-career salary for filtered majors"
         )
     
