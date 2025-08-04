@@ -43,3 +43,20 @@ Based on college major salary survey data including:
 
 Built with ❤️ for data-driven career decisions  
 Part of the AURA Portfolio Project Evolution Series
+
+---
+
+### Data structure expected in college_salary_data.csv:
+Undergraduate Major,Starting Median Salary,Mid-Career Median Salary,Group
+Computer Science,55900,95000,STEM
+Business Management,43000,72000,Business
+Psychology,35900,60400,HASS
+etc...
+
+### Enhancement opportunities:
+- Integration with live job market APIs
+- Machine learning recommendation engine
+- Geographic salary variation analysis
+- Industry-specific breakdowns
+- Alumni outcome tracking
+- Skills gap analysis
