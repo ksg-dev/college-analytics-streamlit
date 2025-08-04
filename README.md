@@ -27,7 +27,7 @@ Based on college major salary survey data including:
 4. Run the app: `streamlit run main.py`
  
 ## Live Demo
-[Deploy to Streamlit Cloud for easy sharing]
+[College Analytics Demo](https://college-analytics-with-guidance.streamlit.app/)
  
 ## Key Insights
 - STEM majors typically offer highest starting salaries
