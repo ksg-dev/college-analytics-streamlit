@@ -82,7 +82,7 @@ def load_enhanced_college_data():
         ]
     }
 
-    base_df = pd.read_csv('../data/college_salary_data.csv')
+    base_df = pd.read_csv('./data/college_salary_data.csv')
     enh_data = pd.DataFrame(data)
 
     # Add Enhanced Data
@@ -121,13 +121,13 @@ def get_personality_recommendations():
         },
         'Creative': {
             'description': 'Innovative, artistic individuals who value self-expression',
-            'recommended_majors': ['Art', 'Drama', 'Film', 'Graphic Design', 'Architecture', 'English'],
+            'recommended_majors': ['Drama', 'Film', 'Graphic Design', 'Architecture', 'English', 'Music'],
             'strengths': ['Innovation', 'Communication', 'Adaptability'],
             'growth_areas': ['Technical skills', 'Financial planning', 'Structure']
         },
         'People-Oriented': {
             'description': 'Empathetic individuals who enjoy helping and working with others',
-            'recommended_majors': ['Psychology', 'Education', 'Nursing', 'Sociology', 'Communications'],
+            'recommended_majors': ['Psychology', 'Education', 'Nursing', 'Sociology', 'Communications', 'Hospitality & Tourism'],
             'strengths': ['Teamwork', 'Communication', 'Empathy'],
             'growth_areas': ['Technical skills', 'Data analysis', 'Business acumen']
         },
@@ -142,23 +142,33 @@ def get_personality_recommendations():
 def calculate_major_score(row, priorities):
     """Calculate weighted score based on user priorities"""
     score = 0
+
+    # Normalize salary to prevent bias toward high earners (30k-110k range)
+    salary_normalized = (row['Mid-Career Median Salary'] - 30000) / 80000
+    salary_normalized = max(0, min(1, salary_normalized))  # Clamp to 0-1
     
-    # Salary weight (0-40%)
-    if priorities['salary'] > 0:
-        salary_score = (row['Mid-Career Median Salary'] - 30000) / 80000  # Normalize 30k-110k to 0-1
-        score += salary_score * (priorities['salary'] / 100) * 40
+    # Normalize growth percentage (typical range 0-200%)
+    growth_normalized = row['Growth Percentage'] / 200
+    growth_normalized = max(0, min(1, growth_normalized))  # Clamp to 0-1
     
-    # Growth weight (0-30%)
-    if priorities['growth'] > 0:
-        growth_score = row['Growth Percentage'] / 200  # Normalize to 0-1
-        score += growth_score * (priorities['growth'] / 100) * 30
+    # Satisfaction is already on 0-10 scale, normalize to 0-1
+    satisfaction_normalized = row['Career_Satisfaction_Score'] / 10
     
-    # Satisfaction weight (0-30%)
-    if priorities['satisfaction'] > 0:
-        satisfaction_score = row['Career_Satisfaction_Score'] / 10  # Normalize to 0-1
-        score += satisfaction_score * (priorities['satisfaction'] / 100) * 30
+    # Apply weights - ensure they add up to 1.0
+    total_weight = priorities['salary'] + priorities['growth'] + priorities['satisfaction']
+    if total_weight > 0:
+        salary_weight = priorities['salary'] / total_weight
+        growth_weight = priorities['growth'] / total_weight
+        satisfaction_weight = priorities['satisfaction'] / total_weight
+        
+        score = (salary_normalized * salary_weight + 
+                growth_normalized * growth_weight + 
+                satisfaction_normalized * satisfaction_weight)
+    else:
+        # Equal weighting if no priorities set
+        score = (salary_normalized + growth_normalized + satisfaction_normalized) / 3
     
-    return min(score, 1.0)  # Cap at 1.0
+    return score
 
 
 def main():
@@ -212,6 +222,12 @@ def main():
             }
         else:
             priorities = {'salary': 33.3, 'growth': 33.3, 'satisfaction': 33.3}
+        
+        # Show immediate impact of priority changes
+        st.write("**Your Priority Breakdown:**")
+        st.write(f"💰 Salary Focus: {priorities['salary']:.1f}%")
+        st.write(f"📈 Growth Focus: {priorities['growth']:.1f}%")
+        st.write(f"😊 Satisfaction Focus: {priorities['satisfaction']:.1f}%")
     
     with col2:
         st.subheader("🧠 Personality Type")
@@ -231,27 +247,79 @@ def main():
                 <ul>
                     {''.join([f'<li>{strength}</li>' for strength in personality_info['strengths']])}
                 </ul>
+                <strong>Recommended Fields:</strong>
+                <ul>
+                    {''.join([f'<li>{field}</li>' for field in personality_info['recommended_majors'][:5]])}
+                </ul>
             </div>
             """, unsafe_allow_html=True)
+        
+        # Add refresh button for immediate feedback
+        if st.button("🔄 Update Recommendations", help="Click to see how your changes affect the recommendations"):
+            st.rerun()
     
     # Calculate personalized recommendations
     df['Personalized_Score'] = df.apply(lambda row: calculate_major_score(row, priorities), axis=1)
     
     # Personality-based filtering
     personality_majors = personality_types[selected_personality]['recommended_majors']
-    personality_bonus = 0.1  # 10% bonus for personality match
+    personality_bonus = 0.3  # Increased to 30% bonus for personality match
     
+    # Debug: Show personality matching
+    st.write(f"**🧠 Personality Type: {selected_personality}**")
+    st.write(f"**Recommended Major Types:** {', '.join(personality_majors)}")
+    
+    personality_matches = []
     for idx, row in df.iterrows():
-        if any(major.lower() in row['Undergraduate Major'].lower() for major in personality_majors):
-            df.at[idx, 'Personalized_Score'] += personality_bonus
+        major_name = row['Undergraduate Major']
+        is_match = False
+        
+        # Improved matching logic - check for key terms
+        for rec_major in personality_majors:
+            if (rec_major.lower() in major_name.lower() or 
+                major_name.lower() in rec_major.lower() or
+                any(word in major_name.lower() for word in rec_major.lower().split())):
+                is_match = True
+                personality_matches.append(major_name)
+                break
+        
+        if is_match:
+            # Apply significant bonus for personality match
+            df.at[idx, 'Personalized_Score'] = min(1.0, df.at[idx, 'Personalized_Score'] + personality_bonus)
     
-    # Cap scores at 1.0
-    df['Personalized_Score'] = df['Personalized_Score'].clip(upper=1.0)
+    # Show which majors got personality bonuses
+    if personality_matches:
+        st.write(f"**🎯 Personality Matches Found:** {', '.join(personality_matches[:5])}")
+    else:
+        st.warning("No exact personality matches found - recommendations based on priorities only")
+    
+    # Don't cap at 1.0 yet - let personality matches stand out
+    df['Personalized_Score'] = df['Personalized_Score'].clip(upper=1.5)  # Allow higher scores for personality matches
     
     # Top Recommendations
     st.header("🌟 Your Personalized Recommendations")
     
     top_recommendations = df.nlargest(10, 'Personalized_Score')
+    
+    # Debug information to show what's affecting rankings
+    with st.expander("🔍 Debug: See How Rankings Are Calculated"):
+        st.write("**Priority Weights:**")
+        st.write(f"- Salary: {priorities['salary']:.1f}%")
+        st.write(f"- Growth: {priorities['growth']:.1f}%") 
+        st.write(f"- Satisfaction: {priorities['satisfaction']:.1f}%")
+        
+        st.write("**Top 5 Scoring Breakdown:**")
+        debug_df = top_recommendations.head(5)[['Undergraduate Major', 'Group', 'Mid-Career Median Salary', 
+                                                'Growth Percentage', 'Career_Satisfaction_Score', 'Personalized_Score']]
+        st.dataframe(debug_df.style.format({
+            'Mid-Career Median Salary': '${:,.0f}',
+            'Growth Percentage': '{:.1f}%',
+            'Career_Satisfaction_Score': '{:.1f}/10',
+            'Personalized_Score': '{:.3f}'
+        }))
+        
+        if personality_matches:
+            st.write(f"**Personality Bonus Applied To:** {', '.join(personality_matches)}")
     
     col1, col2 = st.columns([2, 1])
     
