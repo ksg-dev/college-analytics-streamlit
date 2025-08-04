@@ -57,8 +57,7 @@ st.markdown("""
 @st.cache_data
 def load_college_data():
     """Load and clean college major salary data"""
-    raw_df = pd.read_csv('college_salary_data.csv')
-    df = raw_df.dropna()
+    df = pd.read_csv('./data/college_salary_data.csv')
 
     # Calculate additional metrics
     df['Mid-Career 10th Percentile Salary'] = df['Mid-Career Median Salary'] * 0.7
